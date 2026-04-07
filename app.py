@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from flask import Flask, abort, jsonify, redirect, request, url_for
@@ -13,12 +13,15 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from sqlalchemy import inspect, text
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+MAX_LOGIN_ATTEMPTS = 3
+LOCKOUT_MINUTES = 15
 
 
 class User(UserMixin, db.Model):
@@ -30,6 +33,8 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False, index=True)
     is_active_user = db.Column(db.Boolean, default=True, nullable=False)
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_on": role,
@@ -41,6 +46,13 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password_hash, password)
+
+    def is_locked(self) -> bool:
+        return bool(self.locked_until and self.locked_until > datetime.utcnow())
+
+    def reset_login_protection(self) -> None:
+        self.failed_login_attempts = 0
+        self.locked_until = None
 
     @property
     def is_active(self) -> bool:
@@ -174,6 +186,36 @@ def parse_iso_date(value: str, field_name: str) -> date:
         raise ValueError(f"{field_name} must be a valid ISO date (YYYY-MM-DD).") from exc
 
 
+def require_fields(payload: dict[str, Any], required_fields: list[str]) -> None:
+    missing_fields: list[str] = []
+
+    for field_name in required_fields:
+        value = payload.get(field_name)
+        if value is None:
+            missing_fields.append(field_name)
+        elif isinstance(value, str) and not value.strip():
+            missing_fields.append(field_name)
+
+    if missing_fields:
+        abort(400, description=f"Missing required field(s): {', '.join(missing_fields)}.")
+
+
+def ensure_security_columns() -> None:
+    existing_columns = {
+        column["name"] for column in inspect(db.engine).get_columns("users")
+    }
+
+    with db.engine.begin() as connection:
+        if "failed_login_attempts" not in existing_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+        if "locked_until" not in existing_columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN locked_until DATETIME"))
+
+
 def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.update(
@@ -200,6 +242,11 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             403,
         )
 
+    @app.errorhandler(400)
+    def handle_bad_request(error: Any) -> Any:
+        description = getattr(error, "description", "Bad request.")
+        return jsonify({"error": "Bad Request", "message": description}), 400
+
     @app.errorhandler(403)
     def handle_forbidden(error: Any) -> Any:
         description = getattr(error, "description", "Access denied.")
@@ -212,7 +259,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "message": "Corporate Leave Approval System backend is running.",
                 "project": "IT Prototyping of Approval & Authorization System",
                 "domain": "Corporate Leave Approval System",
-                "phases_completed": 2,
+                "phases_completed": 3,
                 "routes": [
                     "POST /login",
                     "POST /logout",
@@ -228,19 +275,68 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             }
         )
 
+    @app.get("/health")
+    def health() -> Any:
+        return jsonify({"status": "ok"})
+
     @app.post("/login")
     def login() -> Any:
         payload = request.get_json(silent=True) or {}
+        require_fields(payload, ["email", "password"])
+
         email = payload.get("email", "").strip().lower()
         password = payload.get("password", "")
 
-        if not email or not password:
-            return jsonify({"error": "Email and password are required."}), 400
-
         user = User.query.filter_by(email=email).first()
+        if user and user.is_locked():
+            return (
+                jsonify(
+                    {
+                        "error": "Account locked.",
+                        "message": "Too many invalid login attempts. Try again later.",
+                        "unlock_at": user.locked_until.isoformat(),
+                    }
+                ),
+                423,
+            )
+
         if not user or not user.check_password(password):
+            if user:
+                user.failed_login_attempts += 1
+                attempts_remaining = max(MAX_LOGIN_ATTEMPTS - user.failed_login_attempts, 0)
+
+                if user.failed_login_attempts >= MAX_LOGIN_ATTEMPTS:
+                    user.locked_until = datetime.utcnow() + timedelta(
+                        minutes=LOCKOUT_MINUTES
+                    )
+                    db.session.commit()
+                    return (
+                        jsonify(
+                            {
+                                "error": "Account locked.",
+                                "message": "Too many invalid login attempts. Try again later.",
+                                "unlock_at": user.locked_until.isoformat(),
+                            }
+                        ),
+                        423,
+                    )
+
+                db.session.commit()
+                return (
+                    jsonify(
+                        {
+                            "error": "Invalid credentials.",
+                            "message": "The email or password is incorrect.",
+                            "attempts_remaining": attempts_remaining,
+                        }
+                    ),
+                    401,
+                )
+
             return jsonify({"error": "Invalid credentials."}), 401
 
+        user.reset_login_protection()
+        db.session.commit()
         login_user(user)
         return jsonify(
             {
@@ -316,29 +412,21 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             abort(403, description="Only employees can create leave requests.")
 
         payload = request.get_json(silent=True) or {}
+        require_fields(payload, ["leave_type", "reason", "start_date", "end_date"])
+
         leave_type = payload.get("leave_type", "").strip()
         reason = payload.get("reason", "").strip()
         start_date_raw = payload.get("start_date")
         end_date_raw = payload.get("end_date")
 
-        if not leave_type or not reason or not start_date_raw or not end_date_raw:
-            return (
-                jsonify(
-                    {
-                        "error": "leave_type, reason, start_date, and end_date are required."
-                    }
-                ),
-                400,
-            )
-
         try:
             start_date = parse_iso_date(start_date_raw, "start_date")
             end_date = parse_iso_date(end_date_raw, "end_date")
         except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+            abort(400, description=str(exc))
 
         if end_date < start_date:
-            return jsonify({"error": "end_date must be on or after start_date."}), 400
+            abort(400, description="end_date must be on or after start_date.")
 
         total_days = (end_date - start_date).days + 1
         leave_request = LeaveRequest(
@@ -407,11 +495,12 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             )
 
         payload = request.get_json(silent=True) or {}
+        require_fields(payload, ["action"])
         action = payload.get("action", "").strip().lower()
         comments = payload.get("comments", "").strip()
 
         if action not in {"approve", "reject"}:
-            return jsonify({"error": "action must be either approve or reject."}), 400
+            abort(400, description="action must be either approve or reject.")
 
         leave_request.manager_id = current_user.id
         leave_request.manager_comments = comments or None
@@ -427,6 +516,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             )
 
         manager_limit = getattr(current_user, "approval_limit_days", 14)
+
         if leave_request.total_days <= manager_limit:
             leave_request.status = "manager_approved"
             db.session.commit()
@@ -471,11 +561,12 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             )
 
         payload = request.get_json(silent=True) or {}
+        require_fields(payload, ["action"])
         action = payload.get("action", "").strip().lower()
         comments = payload.get("comments", "").strip()
 
         if action not in {"approve", "reject"}:
-            return jsonify({"error": "action must be approve or reject."}), 400
+            abort(400, description="action must be approve or reject.")
 
         leave_request.admin_id = current_user.id
         leave_request.admin_comments = comments or None
@@ -495,7 +586,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     with app.app_context():
         db.create_all()
+        ensure_security_columns()
         seed_demo_users()
+        sync_demo_configuration()
 
     return app
 
@@ -540,6 +633,13 @@ def seed_demo_users() -> None:
         db.session.add(account)
 
     db.session.commit()
+
+
+def sync_demo_configuration() -> None:
+    manager = User.query.filter_by(email="manager@corp.local").first()
+    if isinstance(manager, HRManager) and manager.approval_limit_days != 14:
+        manager.approval_limit_days = 14
+        db.session.commit()
 
 
 app = create_app()

@@ -2,7 +2,7 @@
 
 Backend prototype for an IT Prototyping of Approval & Authorization System using a corporate leave workflow.
 
-## Phase 2 Scope
+## Phase 3 Scope
 
 - role models for employee, HR manager, and admin
 - secure login with password hashing
@@ -12,6 +12,9 @@ Backend prototype for an IT Prototyping of Approval & Authorization System using
 - manager approval and rejection
 - escalation to admin for requests above threshold
 - admin override support
+- structured validation errors
+- account lockout after repeated failed logins
+- safer forbidden-access handling
 
 ## Setup
 
