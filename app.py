@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 from typing import Any
 
-from flask import Flask, abort, jsonify, redirect, request, url_for
+import io
+import docx
+from flask import Flask, abort, jsonify, redirect, request, url_for, send_file
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -16,6 +22,7 @@ from flask_login import (
 from sqlalchemy import inspect, text
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_cors import CORS
 
 
 db = SQLAlchemy()
@@ -48,7 +55,12 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def is_locked(self) -> bool:
-        return bool(self.locked_until and self.locked_until > datetime.utcnow())
+        if not self.locked_until:
+            return False
+        lu = self.locked_until
+        if lu.tzinfo is None:
+            lu = lu.replace(tzinfo=timezone.utc)
+        return lu > _utcnow()
 
     def reset_login_protection(self) -> None:
         self.failed_login_attempts = 0
@@ -147,17 +159,17 @@ class LeaveRequest(db.Model):
     )
     manager_comments = db.Column(db.Text, nullable=True)
     admin_comments = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=_utcnow,
+        onupdate=_utcnow,
     )
 
-    employee = db.relationship("Employee", foreign_keys=[employee_id])
-    manager = db.relationship("HRManager", foreign_keys=[manager_id])
-    admin = db.relationship("Admin", foreign_keys=[admin_id])
+    employee = db.relationship("Employee", foreign_keys=[employee_id], lazy="joined")
+    manager = db.relationship("HRManager", foreign_keys=[manager_id], lazy="joined")
+    admin = db.relationship("Admin", foreign_keys=[admin_id], lazy="joined")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -227,8 +239,18 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     if test_config:
         app.config.update(test_config)
 
+    CORS(app, supports_credentials=True)
     db.init_app(app)
     login_manager.init_app(app)
+
+    # B-010 FIX: Security headers
+    @app.after_request
+    def add_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        return response
 
     @login_manager.unauthorized_handler
     def unauthorized() -> Any:
@@ -306,7 +328,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 attempts_remaining = max(MAX_LOGIN_ATTEMPTS - user.failed_login_attempts, 0)
 
                 if user.failed_login_attempts >= MAX_LOGIN_ATTEMPTS:
-                    user.locked_until = datetime.utcnow() + timedelta(
+                    user.locked_until = _utcnow() + timedelta(
                         minutes=LOCKOUT_MINUTES
                     )
                     db.session.commit()
@@ -459,7 +481,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         elif current_user.role == "hr_manager":
             records = LeaveRequest.query.filter(
                 LeaveRequest.status.in_(
-                    ["pending_manager_review", "escalated_to_admin", "manager_approved"]
+                    ["pending_manager_review", "escalated_to_admin", "manager_approved", "rejected_by_manager"]
                 )
             ).all()
         elif current_user.role == "admin":
@@ -472,6 +494,62 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "count": len(records),
                 "leave_requests": [record.to_dict() for record in records],
             }
+        )
+
+    @app.get("/export-report")
+    @login_required
+    def export_report() -> Any:
+        if current_user.role not in ["hr_manager", "admin"]:
+            abort(403, description="HR Manager or Admin access required.")
+
+        if current_user.role == "hr_manager":
+            records = LeaveRequest.query.filter(
+                LeaveRequest.status.in_(
+                    ["pending_manager_review", "escalated_to_admin", "manager_approved", "rejected_by_manager"]
+                )
+            ).all()
+        else: # admin
+            records = LeaveRequest.query.all()
+
+        document = docx.Document()
+        document.add_heading(f"Corporate Leave Scope ({current_user.role.upper()})", 0)
+        
+        p = document.add_paragraph()
+        p.add_run("Generated on: ").bold = True
+        p.add_run(_utcnow().strftime("%Y-%m-%d %H:%M:%S UTC") + "\n")
+        p.add_run(f"Total Records: {len(records)}")
+
+        if not records:
+            document.add_paragraph().add_run("No leave requests found for this scope.").italic = True
+        else:
+            table = document.add_table(rows=1, cols=6)
+            table.style = 'Table Grid'
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'ID'
+            hdr_cells[1].text = 'Employee'
+            hdr_cells[2].text = 'Type'
+            hdr_cells[3].text = 'Duration'
+            hdr_cells[4].text = 'Days'
+            hdr_cells[5].text = 'Status'
+
+            for record in records:
+                row_cells = table.add_row().cells
+                row_cells[0].text = str(record.id)
+                row_cells[1].text = record.employee.full_name if record.employee else f"EMP-{record.employee_id}"
+                row_cells[2].text = record.leave_type
+                row_cells[3].text = f"{record.start_date.strftime('%Y-%m-%d')} to {record.end_date.strftime('%Y-%m-%d')}"
+                row_cells[4].text = str(record.total_days)
+                row_cells[5].text = record.status.replace("_", " ").upper()
+
+        file_stream = io.BytesIO()
+        document.save(file_stream)
+        file_stream.seek(0)
+        
+        return send_file(
+            file_stream,
+            as_attachment=True,
+            download_name=f"Leave_Report_{_utcnow().strftime('%Y%m%d_%H%M')}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
     @app.post("/leave-requests/<int:request_id>/manager-review")
@@ -583,6 +661,68 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "leave_request": leave_request.to_dict(),
             }
         )
+
+    # ── B-001 FIX: Admin unlock endpoint ──
+    @app.post("/admin/unlock/<int:user_id>")
+    @login_required
+    def admin_unlock_user(user_id: int) -> Any:
+        if current_user.role != "admin":
+            abort(403, description="Admin access only.")
+        target = db.session.get(User, user_id)
+        if not target:
+            return jsonify({"error": "User not found."}), 404
+        target.reset_login_protection()
+        db.session.commit()
+        return jsonify({"message": f"Account for {target.email} has been unlocked."})
+
+    # ── F-006 FIX: Leave balance endpoint ──
+    @app.get("/leave-balance")
+    @login_required
+    def leave_balance() -> Any:
+        if current_user.role != "employee":
+            abort(403, description="Employee access only.")
+        # Calculate used days from approved leaves this year
+        from sqlalchemy import extract
+        current_year = _utcnow().year
+        approved_leaves = LeaveRequest.query.filter(
+            LeaveRequest.employee_id == current_user.id,
+            LeaveRequest.status.in_(["manager_approved", "admin_approved"]),
+            extract("year", LeaveRequest.start_date) == current_year,
+        ).all()
+        used_annual = sum(lr.total_days for lr in approved_leaves if lr.leave_type in ["Annual Leave", "Casual Leave"])
+        used_sick = sum(lr.total_days for lr in approved_leaves if lr.leave_type == "Sick Leave")
+        used_personal = sum(lr.total_days for lr in approved_leaves if lr.leave_type in ["Personal Leave", "Unpaid Leave"])
+        pending_leaves = LeaveRequest.query.filter(
+            LeaveRequest.employee_id == current_user.id,
+            LeaveRequest.status.in_(["pending_manager_review", "escalated_to_admin"]),
+            extract("year", LeaveRequest.start_date) == current_year,
+        ).all()
+        in_review = sum(lr.total_days for lr in pending_leaves)
+        return jsonify({
+            "annual": {"total": 20, "used": used_annual, "available": max(20 - used_annual, 0)},
+            "sick": {"total": 12, "used": used_sick, "available": max(12 - used_sick, 0)},
+            "personal": {"total": 5, "used": used_personal, "available": max(5 - used_personal, 0)},
+            "in_review_days": in_review,
+        })
+
+    # ── F-014/F-017 FIX: Dashboard statistics endpoint ──
+    @app.get("/dashboard/stats")
+    @login_required
+    def dashboard_stats() -> Any:
+        all_requests = LeaveRequest.query.all()
+        total_approved = sum(1 for r in all_requests if r.status in ["manager_approved", "admin_approved"])
+        total_rejected = sum(1 for r in all_requests if r.status in ["rejected_by_manager", "admin_rejected"])
+        total_pending = sum(1 for r in all_requests if r.status == "pending_manager_review")
+        total_escalated = sum(1 for r in all_requests if r.status == "escalated_to_admin")
+        total_employees = Employee.query.count()
+        return jsonify({
+            "total_approved": total_approved,
+            "total_rejected": total_rejected,
+            "total_pending": total_pending,
+            "total_escalated": total_escalated,
+            "total_employees": total_employees,
+            "escalation_rate": round((total_escalated / max(len(all_requests), 1)) * 100, 1),
+        })
 
     with app.app_context():
         db.create_all()

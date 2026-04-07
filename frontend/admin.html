@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Ledger - Admin Dashboard</title>
+<meta name="description" content="Admin dashboard — oversee all leave activity, make executive decisions on escalated requests, and manage system-wide policy." />
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Inter:wght@300..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Chart.js for analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e1e2e4",
+                        "primary-fixed": "#d9e2ff",
+                        "inverse-on-surface": "#f0f1f3",
+                        "on-tertiary-container": "#ffc6b2",
+                        "on-secondary-fixed-variant": "#374763",
+                        "surface-variant": "#e1e2e4",
+                        "tertiary-fixed": "#ffdbcf",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#51617e",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#7b2600",
+                        "surface-container": "#edeef0",
+                        "on-secondary-fixed": "#091c35",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#434654",
+                        "background": "#f8f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-surface": "#2e3132",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-primary-fixed-variant": "#00419d",
+                        "secondary-container": "#cdddff",
+                        "inverse-primary": "#b1c6ff",
+                        "on-tertiary-fixed": "#380d00",
+                        "primary-container": "#2356b5",
+                        "secondary": "#4f5f7b",
+                        "outline-variant": "#c3c6d6",
+                        "on-background": "#191c1e",
+                        "surface-dim": "#d9dadc",
+                        "on-surface": "#191c1e",
+                        "surface-container-low": "#f3f4f6",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-primary": "#ffffff",
+                        "primary": "#003e96",
+                        "surface-container-high": "#e7e8ea",
+                        "primary-fixed-dim": "#b1c6ff",
+                        "on-primary-container": "#c3d2ff",
+                        "surface-tint": "#285ab9",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#f8f9fb",
+                        "secondary-fixed-dim": "#b7c7e8",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-primary-fixed": "#001946",
+                        "surface": "#f8f9fb",
+                        "outline": "#737685",
+                        "tertiary-container": "#a33500"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-nav { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .dark body, html.dark body { background-color: #0f1419 !important; color: #e1e2e4 !important; }
+        .dark aside { background-color: #161b22 !important; }
+        .dark header { background-color: rgba(22,27,34,0.85) !important; }
+        .dark .bg-surface, html.dark .bg-surface { background-color: #0f1419 !important; }
+        .dark .bg-surface-container-lowest { background-color: #1c2128 !important; }
+        .dark .bg-surface-container-low { background-color: #161b22 !important; }
+        .dark .bg-surface-container-high { background-color: #242a33 !important; }
+        .dark .bg-white\/80 { background-color: rgba(22,27,34,0.85) !important; }
+        .dark .bg-white { background-color: #1c2128 !important; }
+        .dark .text-on-background, .dark .text-on-surface { color: #e1e2e4 !important; }
+        .dark .text-slate-900 { color: #e6edf3 !important; }
+        .dark .text-slate-600, .dark .text-slate-500, .dark .text-slate-400 { color: #8b949e !important; }
+        .dark .text-on-surface-variant { color: #8b949e !important; }
+        .dark .bg-blue-100 { background-color: rgba(56,139,253,0.15) !important; }
+        .dark .text-blue-800 { color: #79c0ff !important; }
+        .dark .bg-primary-container { background-color: #1158c7 !important; }
+        .dark .text-on-primary-container { color: #c3d2ff !important; }
+        .dark .bg-primary-fixed { background-color: rgba(177,198,255,0.15) !important; }
+        .dark .text-on-primary-fixed-variant { color: #b1c6ff !important; }
+        .dark .bg-error-container { background-color: rgba(248,81,73,0.15) !important; }
+        .dark .text-on-error-container { color: #ff7b72 !important; }
+        .dark .bg-secondary-container { background-color: rgba(177,198,255,0.1) !important; }
+        .dark .bg-surface-bright { background-color: #242a33 !important; }
+        .dark .bg-surface-container { background-color: #1c2128 !important; }
+        .dark input, .dark textarea { background-color: #242a33 !important; color: #e1e2e4 !important; border-color: #30363d !important; }
+        .dark input::placeholder, .dark textarea::placeholder { color: #6e7681 !important; }
+        .dark .text-tertiary { color: #ffb59b !important; }
+        .dark .text-primary { color: #79c0ff !important; }
+        .dark .shadow-sm, .dark .shadow-xl { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+        .dark .border-outline-variant\/10 { border-color: rgba(48,54,61,0.3) !important; }
+        .dark .bg-green-500 { background-color: #3fb950 !important; }
+        .dark .bg-slate-200 { background-color: #30363d !important; }
+        .dark .text-slate-500.text-slate-500 { color: #8b949e !important; }
+        .dark .bg-slate-50 { background-color: #161b22 !important; }
+    </style>
+<link rel="stylesheet" href="/src/styles/responsive.css">
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Shell -->
+<aside class="h-full w-64 fixed left-0 top-0 bg-slate-50 flex flex-col py-8 px-4 z-50">
+<div class="mb-12 px-4">
+<h1 class="text-xl font-bold tracking-tight text-slate-900">Editorial Ledger</h1>
+<p class="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">Leave Management</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a id="nav-dashboard" class="nav-link bg-blue-100 text-blue-800 rounded-full px-4 py-2 font-semibold flex items-center gap-3 transition-all duration-200 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a id="nav-leave-requests" class="nav-link text-slate-600 px-4 py-2 hover:text-slate-900 flex items-center gap-3 transition-all duration-200 hover:bg-slate-200/50 rounded-full cursor-pointer">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm">Leave Requests</span>
+</a>
+<a id="nav-profile" class="nav-link text-slate-600 px-4 py-2 hover:text-slate-900 flex items-center gap-3 transition-all duration-200 hover:bg-slate-200/50 rounded-full cursor-pointer">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="text-sm">Profile</span>
+</a>
+</nav>
+<!-- Logout -->
+<div class="px-4 mb-4">
+<button id="btn-logout" class="w-full flex items-center gap-3 text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-full transition-colors duration-200 cursor-pointer">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm font-semibold">Sign Out</span>
+</button>
+</div>
+<div class="px-4 flex items-center gap-3">
+<img alt="User Profile Picture" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyAfnExqpL2HI3hPGNNhhEvGqMmZQx9CNuQaad3jRmtH6de8wRL4YLOzrvQrqJ3rEZQeIRNchmBpxVXWCc1bDjQxcJlvlQnUhC1W7EXklCtdt-hnYUV8IJx_KVwGvPJRjRfJXS3igy74OjwPxOLEP8Uv6nHs7aMtVRDWBOHLZk5N9lFWr3C43iPoDV17wEFZoLGMu09KekBX1FxcjGMxrdULWbHbKYdLA516qchq8sXJ7dKMf-92YvT1g3i90U5jsXHkt4dWg7CLN8"/>
+<div>
+<p id="sidebar-user-name" class="text-xs font-bold text-on-surface">Admin Console</p>
+<p id="sidebar-user-role" class="text-[10px] text-slate-500">Tier 1 Authority</p>
+</div>
+</div>
+</aside>
+<!-- TopNavBar Shell -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-xl flex justify-between items-center px-8 z-40">
+<div class="flex items-center gap-4">
+<span class="text-lg font-black text-slate-900">The Ledger</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center bg-surface-container-low px-3 py-1.5 rounded-full border border-outline-variant/10">
+<span class="material-symbols-outlined text-sm mr-2 text-slate-400" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 p-0 placeholder:text-slate-400" placeholder="Search ledger records..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button id="btn-dark-mode" class="text-slate-500 hover:text-blue-700 transition-all" title="Toggle Dark Mode">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<button class="text-slate-500 hover:text-blue-700 transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+<div class="px-3 py-1 bg-primary-container text-on-primary-container text-[10px] font-bold rounded-full tracking-wider uppercase">
+                Admin Role
+            </div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-10 pb-12">
+<!-- Hero Header with Asymmetric Layout -->
+<section class="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
+<div class="max-w-2xl">
+<h2 class="text-slate-500 text-sm font-semibold uppercase tracking-widest mb-4">Executive Oversight</h2>
+<h1 class="text-6xl font-extrabold tracking-tight text-on-background leading-none">
+                    Escalated to <span class="text-primary italic">Admin</span>
+</h1>
+<p class="mt-6 text-slate-600 text-lg leading-relaxed max-w-xl">
+                    Final arbitration for complex leave overrides. Your decisions here finalize the ledger for this fiscal period.
+                </p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-full flex flex-col items-center justify-center aspect-square w-48 shadow-sm">
+<span class="text-5xl font-black text-primary">14</span>
+<span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Pending Ledger</span>
+</div>
+</section>
+<!-- Bento Grid for Metrics -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+<div class="col-span-1 bg-surface-container-lowest p-8 rounded-full shadow-sm hover:bg-surface-bright transition-all group">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Total Approved</p>
+<div class="flex items-end justify-between">
+<h3 class="text-4xl font-bold text-on-background">1,284</h3>
+<span class="material-symbols-outlined text-green-600" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+<div class="col-span-1 bg-surface-container-lowest p-8 rounded-full shadow-sm hover:bg-surface-bright transition-all">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Total Rejected</p>
+<div class="flex items-end justify-between">
+<h3 class="text-4xl font-bold text-on-background">142</h3>
+<span class="material-symbols-outlined text-error" data-icon="trending_down">trending_down</span>
+</div>
+</div>
+<div class="col-span-2 bg-gradient-to-br from-primary to-primary-container p-8 rounded-full shadow-xl relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-xs font-bold text-on-primary-container/80 uppercase tracking-widest mb-4">Escalation Rate</p>
+<div class="flex items-end justify-between">
+<h3 class="text-4xl font-bold text-white">4.2%</h3>
+<p class="text-xs text-on-primary-container font-medium mb-1">Within Policy Limits</p>
+</div>
+</div>
+<!-- Abstract decorative element -->
+<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+</div>
+</section>
+<!-- Analytics Section -->
+<section class="mb-12">
+<h2 class="text-xl font-bold text-on-background mb-6 flex items-center gap-2">
+    <span class="material-symbols-outlined text-primary">analytics</span> Leave Analytics
+</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Leave Type Distribution -->
+    <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm">
+        <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-4">Leave Type Distribution</h3>
+        <div class="relative w-full h-[220px]">
+            <canvas id="chart-leave-type"></canvas>
+        </div>
+    </div>
+    <!-- Monthly Leave Trend -->
+    <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm">
+        <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-4">Monthly Leave Trend</h3>
+        <div class="relative w-full h-[220px]">
+            <canvas id="chart-monthly-trend"></canvas>
+        </div>
+    </div>
+</div>
+<!-- Department Overview -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm mb-6">
+    <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-4">Department Overview</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-outline-variant/10">
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">Department</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">Total Employees</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">On Leave</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">Pending</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">Available</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-slate-500 uppercase">Utilization</th>
+                </tr>
+            </thead>
+            <tbody id="dept-table-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Generate Reports -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-on-surface-variant uppercase tracking-widest">Generate Reports</h3>
+        <button id="btn-export-report" class="bg-primary text-on-primary px-6 py-2 rounded-full text-xs font-bold hover:scale-[0.98] transition-all">EXPORT REPORT</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Date Range</label>
+            <select id="report-date-range" class="w-full bg-surface-container-high border-none rounded-md py-3 px-4 text-sm">
+                <option>Last 30 Days</option>
+                <option>Last 90 Days</option>
+                <option>This Year</option>
+                <option>All Time</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Report Type</label>
+            <select id="report-type" class="w-full bg-surface-container-high border-none rounded-md py-3 px-4 text-sm">
+                <option>Summary</option>
+                <option>Detailed</option>
+                <option>Department Breakdown</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Department</label>
+            <select id="report-dept" class="w-full bg-surface-container-high border-none rounded-md py-3 px-4 text-sm">
+                <option>All Departments</option>
+                <option>Engineering</option>
+                <option>Marketing</option>
+                <option>Sales</option>
+                <option>Finance</option>
+                <option>HR</option>
+            </select>
+        </div>
+    </div>
+</div>
+</section>
+<!-- Main Workspace: Pending Decisions & Form -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+<!-- Pending Executive Decisions Queue -->
+<div class="lg:col-span-2">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold tracking-tight">Pending Executive Decisions</h3>
+<button id="btn-view-archives" class="text-primary text-sm font-bold flex items-center gap-2 hover:underline">
+                        View All Archives <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Queue populated by JS -->
+</div>
+</div>
+<!-- Mandatory Decision Form -->
+<div class="lg:col-span-1">
+<div class="bg-surface-container-lowest p-10 rounded-[2rem] shadow-sm sticky top-24">
+<h3 class="text-xl font-bold tracking-tight mb-2">Final Decision</h3>
+<p class="text-xs text-slate-500 mb-8 leading-relaxed">
+                        Arbitrating case <span class="text-primary font-bold">#LGR-8921</span> for Harrington. Please provide executive rationale.
+                    </p>
+<form class="space-y-6">
+<div>
+<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Final Decision Comments (Mandatory)</label>
+<textarea class="w-full bg-surface-container-high border-none rounded-xl focus:ring-2 focus:ring-surface-tint/30 text-sm placeholder:text-slate-400 p-4" placeholder="Enter specific justification for policy override..." rows="5"></textarea>
+</div>
+<div class="flex flex-col gap-3">
+<button class="w-full bg-[#0a3b8b] text-white hover:bg-[#072a66] transition-colors py-3.5 rounded-xl font-bold text-sm tracking-wide flex items-center justify-center gap-2" type="submit" value="approve">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span>
+                                Approve Override
+                            </button>
+<button class="w-full bg-red-100 text-red-900 hover:bg-red-200 transition-colors py-3.5 rounded-xl font-bold text-sm tracking-wide flex items-center justify-center gap-2" type="submit" value="reject">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span>
+                                Uphold Rejection
+                            </button>
+</div>
+<div class="pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-2 text-[10px] text-slate-400 font-medium italic">
+<span class="material-symbols-outlined text-[12px]" data-icon="verified_user">verified_user</span>
+                                Decision will be logged in the permanent audit trail.
+                            </div>
+</div>
+</form>
+</div>
+</div>
+</div>
+<!-- System Status Summary Footer Area -->
+<section class="mt-20 flex flex-wrap items-center justify-between gap-6 border-t border-outline-variant/10 pt-10">
+<div class="flex gap-12">
+<div>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">System Health</p>
+<p class="text-sm font-bold flex items-center gap-2">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span> Operational
+                    </p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Last Reconciliation</p>
+<p id="last-reconciliation" class="text-sm font-bold">Just now</p>
+</div>
+</div>
+<div class="flex gap-2">
+<div class="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400 text-sm" data-icon="print">print</span>
+</div>
+<div class="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400 text-sm" data-icon="download">download</span>
+</div>
+<div class="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400 text-sm" data-icon="share">share</span>
+</div>
+</div>
+</section>
+</main>
+
+<!-- Profile Modal -->
+<div id="modal-profile" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] hidden items-center justify-center">
+<div class="bg-surface-container-lowest rounded-2xl p-10 w-full max-w-md shadow-2xl relative">
+<button id="close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><span class="material-symbols-outlined">close</span></button>
+<div class="flex flex-col items-center gap-4 mb-8">
+<div class="w-20 h-20 rounded-full bg-primary-container overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyAfnExqpL2HI3hPGNNhhEvGqMmZQx9CNuQaad3jRmtH6de8wRL4YLOzrvQrqJ3rEZQeIRNchmBpxVXWCc1bDjQxcJlvlQnUhC1W7EXklCtdt-hnYUV8IJx_KVwGvPJRjRfJXS3igy74OjwPxOLEP8Uv6nHs7aMtVRDWBOHLZk5N9lFWr3C43iPoDV17wEFZoLGMu09KekBX1FxcjGMxrdULWbHbKYdLA516qchq8sXJ7dKMf-92YvT1g3i90U5jsXHkt4dWg7CLN8"/>
+</div>
+<h3 id="profile-name" class="text-xl font-bold text-on-background">Admin</h3>
+<span id="profile-role" class="px-4 py-1 bg-primary-container text-on-primary-container text-xs font-bold rounded-full uppercase tracking-wider">Administrator</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Email</span>
+<span id="profile-email" class="text-sm font-medium text-on-background">admin@corp.local</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Authority</span>
+<span class="text-sm font-medium text-on-background">Tier 1 — Global Override</span>
+</div>
+<div class="flex justify-between items-center py-3">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Scope</span>
+<span class="text-sm font-medium text-on-background">All Departments</span>
+</div>
+</div>
+</div>
+</div>
+
+<script type="module" src="/src/scripts/admin.js"></script>
+</body></html>

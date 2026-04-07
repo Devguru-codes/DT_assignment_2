@@ -1,5 +1,7 @@
 Flask==3.0.2
 Flask-Login==0.6.3
 Flask-SQLAlchemy==3.1.1
+Flask-Cors==5.0.0
 SQLAlchemy==2.0.29
 pytest==8.3.5
+python-docx

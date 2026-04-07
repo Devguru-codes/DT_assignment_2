@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Ledger | HR Manager Dashboard</title>
+<meta name="description" content="HR Manager dashboard — review team leave requests, approve or escalate, and monitor workforce continuity." />
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e1e2e4",
+                        "primary-fixed": "#d9e2ff",
+                        "inverse-on-surface": "#f0f1f3",
+                        "on-tertiary-container": "#ffc6b2",
+                        "on-secondary-fixed-variant": "#374763",
+                        "surface-variant": "#e1e2e4",
+                        "tertiary-fixed": "#ffdbcf",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#51617e",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#7b2600",
+                        "surface-container": "#edeef0",
+                        "on-secondary-fixed": "#091c35",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#434654",
+                        "background": "#f8f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-surface": "#2e3132",
+                        "secondary-fixed": "#d6e3ff",
+                        "on-primary-fixed-variant": "#00419d",
+                        "secondary-container": "#cdddff",
+                        "inverse-primary": "#b1c6ff",
+                        "on-tertiary-fixed": "#380d00",
+                        "primary-container": "#2356b5",
+                        "secondary": "#4f5f7b",
+                        "outline-variant": "#c3c6d6",
+                        "on-background": "#191c1e",
+                        "surface-dim": "#d9dadc",
+                        "on-surface": "#191c1e",
+                        "surface-container-low": "#f3f4f6",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#812800",
+                        "on-primary": "#ffffff",
+                        "primary": "#003e96",
+                        "surface-container-high": "#e7e8ea",
+                        "primary-fixed-dim": "#b1c6ff",
+                        "on-primary-container": "#c3d2ff",
+                        "surface-tint": "#285ab9",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#f8f9fb",
+                        "secondary-fixed-dim": "#b7c7e8",
+                        "tertiary-fixed-dim": "#ffb59b",
+                        "on-primary-fixed": "#001946",
+                        "surface": "#f8f9fb",
+                        "outline": "#737685",
+                        "tertiary-container": "#a33500"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .dark body, html.dark body { background-color: #0f1419 !important; color: #e1e2e4 !important; }
+        .dark aside { background-color: #161b22 !important; }
+        .dark header { background-color: rgba(22,27,34,0.85) !important; }
+        .dark .bg-surface, html.dark .bg-surface { background-color: #0f1419 !important; }
+        .dark .bg-surface-container-lowest { background-color: #1c2128 !important; }
+        .dark .bg-surface-container-low { background-color: #161b22 !important; }
+        .dark .bg-surface-container-high { background-color: #242a33 !important; }
+        .dark .bg-white\/80 { background-color: rgba(22,27,34,0.85) !important; }
+        .dark .bg-white { background-color: #1c2128 !important; }
+        .dark .text-on-background, .dark .text-on-surface { color: #e1e2e4 !important; }
+        .dark .text-slate-900 { color: #e6edf3 !important; }
+        .dark .text-slate-600, .dark .text-slate-500, .dark .text-slate-400 { color: #8b949e !important; }
+        .dark .text-on-surface-variant { color: #8b949e !important; }
+        .dark .bg-blue-100 { background-color: rgba(56,139,253,0.15) !important; }
+        .dark .text-blue-800 { color: #79c0ff !important; }
+        .dark .bg-primary-container { background-color: #1158c7 !important; }
+        .dark .bg-primary-fixed { background-color: rgba(177,198,255,0.15) !important; }
+        .dark .text-on-primary-fixed-variant { color: #b1c6ff !important; }
+        .dark .bg-error-container { background-color: rgba(248,81,73,0.15) !important; }
+        .dark .text-on-error-container { color: #ff7b72 !important; }
+        .dark .bg-secondary-container { background-color: rgba(177,198,255,0.1) !important; }
+        .dark .text-on-secondary-container { color: #b1c6ff !important; }
+        .dark .bg-surface-bright { background-color: #242a33 !important; }
+        .dark input { background-color: #242a33 !important; color: #e1e2e4 !important; border-color: #30363d !important; }
+        .dark input::placeholder { color: #6e7681 !important; }
+        .dark .bg-tertiary-fixed { background-color: rgba(255,181,155,0.15) !important; }
+        .dark .text-tertiary { color: #ffb59b !important; }
+        .dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+    </style>
+<link rel="stylesheet" href="/src/styles/responsive.css">
+</head>
+<body class="bg-surface text-on-background min-h-screen">
+<!-- SideNavBar Shell -->
+<aside class="h-full w-64 fixed left-0 top-0 bg-slate-50 flex flex-col py-8 px-4 z-50">
+<div class="mb-12 px-4">
+<h1 class="text-xl font-bold tracking-tight text-slate-900">Editorial Ledger</h1>
+<p class="text-xs font-label text-slate-500 uppercase tracking-widest mt-1">Leave Management</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a id="nav-dashboard" class="nav-link bg-blue-100 text-blue-800 rounded-full px-4 py-2 font-semibold flex items-center gap-3 transition-colors duration-200 cursor-pointer">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label">Dashboard</span>
+</a>
+<a id="nav-leave-requests" class="nav-link text-slate-600 px-4 py-2 hover:text-slate-900 hover:bg-slate-200/50 rounded-full flex items-center gap-3 transition-colors duration-200 group cursor-pointer">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label">Leave Requests</span>
+</a>
+<a id="nav-profile" class="nav-link text-slate-600 px-4 py-2 hover:text-slate-900 hover:bg-slate-200/50 rounded-full flex items-center gap-3 transition-colors duration-200 group cursor-pointer">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label">Profile</span>
+</a>
+</nav>
+<!-- Logout -->
+<div class="px-4 mb-4">
+<button id="btn-logout" class="w-full flex items-center gap-3 text-red-500 hover:text-red-700 hover:bg-red-50 px-4 py-2 rounded-full transition-colors duration-200 cursor-pointer">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label text-sm font-semibold">Sign Out</span>
+</button>
+</div>
+<div class="px-4 flex items-center gap-3">
+<img alt="User Profile Picture" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcq2UWi2gDjQtQDxRvU_V3nerCPGob8vHabMbWossOoTiWJxQhkEGRon6h7M-dZhv2vWnF_RxcsZkyp1nsYW4c8Hs_f7MfCbBYFt_9E6bTFqJWPC2_BVHSIyG0jYbHgh4aWlkWdi6RfmnG1QbGSMOF37Jzwyp58bdiRQhkybOwwxypZ4RT7x-AcMyNQqJSB3b5UPsZsSXIe0BOgYtNcGxiQ3Yscp9oewFgVQbCwm_Q3X1JWzb_O4uaJCSfnmSrFrMuLM2qDH8yy8NP"/>
+<div class="overflow-hidden">
+<p id="sidebar-user-name" class="text-sm font-bold text-slate-900 truncate">Harish Manager</p>
+<p id="sidebar-user-role" class="text-xs text-slate-500 truncate">HR Manager</p>
+</div>
+</div>
+</aside>
+<!-- TopNavBar Shell -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-white/80 backdrop-blur-xl flex justify-between items-center px-8 z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" data-icon="search">search</span>
+<input class="w-full bg-surface-container-high border-none rounded-md pl-10 py-2 text-sm focus:ring-2 focus:ring-surface-tint/30 transition-all" placeholder="Search ledger..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button id="btn-dark-mode" class="text-slate-500 hover:text-blue-700 transition-all" title="Toggle Dark Mode">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<button class="text-slate-500 hover:text-blue-700 transition-all relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant/30"></div>
+<span class="bg-primary-fixed text-on-primary-fixed-variant px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">HR MANAGER</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 px-8 pb-12">
+<!-- Hero Operational Overview Section -->
+<section class="mb-10">
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="text-Headline-SM font-headline font-bold text-on-background mb-1">Operational Overview</h2>
+<p class="text-Body-MD text-on-surface-variant">Real-time workforce equilibrium and review priorities.</p>
+</div>
+<div class="flex gap-2">
+<span class="bg-surface-container-low text-on-surface-variant px-4 py-2 rounded-full text-xs font-semibold">Q3 Fiscal Year</span>
+<span id="today-date" class="bg-surface-container-low text-on-surface-variant px-4 py-2 rounded-full text-xs font-semibold">Today: Loading...</span>
+</div>
+</div>
+<!-- Bento Grid for Overview -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Large Display Metric -->
+<div class="col-span-12 lg:col-span-7 bg-surface-container-low rounded-full p-10 flex flex-col justify-between min-h-[300px]">
+<div>
+<span class="text-Label-SM font-bold text-primary tracking-widest uppercase">Action Required</span>
+<h3 class="text-[3.5rem] leading-none font-headline font-extrabold text-on-background mt-4">14 Pending Reviews</h3>
+<p class="text-Body-MD text-on-surface-variant mt-4 max-w-sm">Critical backlog detected in the Creative and Engineering departments. Immediate resolution recommended to maintain operational velocity.</p>
+</div>
+<div class="flex gap-4 mt-8">
+<button class="bg-primary text-on-primary px-6 py-3 rounded-full font-bold text-sm hover:scale-[0.98] transition-transform">Clear Queue</button>
+<button class="bg-white text-on-surface px-6 py-3 rounded-full font-bold text-sm border border-outline-variant/20 hover:bg-surface-bright transition-all">Export Report</button>
+</div>
+</div>
+<!-- Secondary Metric Cards Stack -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-6">
+<div class="bg-surface-container-lowest rounded-full p-8 flex items-center justify-between shadow-[0_24px_24px_-12px_rgba(0,62,150,0.04)]">
+<div>
+<p class="text-Label-SM font-bold text-on-surface-variant/60 uppercase">Team Size</p>
+<p class="text-4xl font-headline font-bold text-on-background mt-1">1,248</p>
+</div>
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="groups">groups</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-full p-8 flex items-center justify-between shadow-[0_24px_24px_-12px_rgba(0,62,150,0.04)]">
+<div>
+<p class="text-Label-SM font-bold text-on-surface-variant/60 uppercase">Avg Response Time</p>
+<p class="text-4xl font-headline font-bold text-on-background mt-1">4.2<span class="text-lg font-medium ml-1">hrs</span></p>
+</div>
+<div class="w-16 h-16 rounded-full bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" data-icon="speed">speed</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Review Queue Section -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-Headline-SM font-headline font-bold text-on-background">Review Queue</h2>
+<div class="flex gap-4">
+<button id="btn-filter" class="flex items-center gap-2 text-Body-MD font-semibold text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="filter_list">filter_list</span>
+                        Filter
+                    </button>
+<button id="btn-sort" class="flex items-center gap-2 text-Body-MD font-semibold text-on-surface-variant hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="sort">sort</span>
+                        Sort
+                    </button>
+</div>
+</div>
+<!-- Queue populated by JS -->
+<div class="space-y-4">
+</div>
+</section>
+<!-- Full Calendar View -->
+<section class="mt-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-Headline-SM font-headline font-bold text-on-background">Team Leave Calendar</h2>
+<div class="flex items-center gap-3">
+<button id="cal-prev" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center hover:bg-surface-container-high transition-all"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<span id="cal-month-label" class="text-sm font-bold text-on-background min-w-[140px] text-center"></span>
+<button id="cal-next" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center hover:bg-surface-container-high transition-all"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-6 overflow-x-auto">
+<div id="calendar-grid" class="grid grid-cols-7 gap-1 min-w-[600px]">
+<!-- Calendar cells rendered by JS -->
+</div>
+</div>
+<div class="flex items-center gap-4 mt-3 text-xs text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-400/60 inline-block"></span> Approved Leave</span>
+<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-amber-400/60 inline-block"></span> Pending</span>
+<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-400/60 inline-block"></span> Rejected</span>
+</div>
+</section>
+<!-- Dynamic Insights Area (Asymmetric Layout) -->
+<section class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="md:col-span-1 bg-gradient-to-br from-primary to-primary-container p-8 rounded-xl text-on-primary">
+<span class="material-symbols-outlined text-4xl mb-4" data-icon="lightbulb">lightbulb</span>
+<h3 class="text-Title-MD font-bold mb-2">Policy Insight</h3>
+<p class="text-xs opacity-80 leading-relaxed">System data suggests a 15% increase in sabbatical requests this month. Consider reviewing the 'Extended Absence' policy for Q1 planning.</p>
+<button class="mt-6 text-xs font-bold border-b border-white/40 pb-1 hover:border-white transition-all">Update Policy</button>
+</div>
+<div class="md:col-span-2 bg-surface-container-high rounded-xl p-8 flex items-center justify-between">
+<div class="max-w-md">
+<h3 class="text-Title-MD font-bold text-on-background mb-2">Automated Ledger Balancing</h3>
+<p class="text-Body-MD text-on-surface-variant">The ledger has detected potential staffing shortages in Customer Support between Dec 20 - Jan 02. Overlapping requests are highlighted in your full queue.</p>
+</div>
+<div class="hidden sm:block">
+<span class="material-symbols-outlined text-[4rem] text-primary/20" data-icon="account_balance">account_balance</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Profile Modal -->
+<div id="modal-profile" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] hidden items-center justify-center">
+<div class="bg-surface-container-lowest rounded-2xl p-10 w-full max-w-md shadow-2xl relative">
+<button id="close-profile" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><span class="material-symbols-outlined">close</span></button>
+<div class="flex flex-col items-center gap-4 mb-8">
+<div class="w-20 h-20 rounded-full bg-primary-fixed overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcq2UWi2gDjQtQDxRvU_V3nerCPGob8vHabMbWossOoTiWJxQhkEGRon6h7M-dZhv2vWnF_RxcsZkyp1nsYW4c8Hs_f7MfCbBYFt_9E6bTFqJWPC2_BVHSIyG0jYbHgh4aWlkWdi6RfmnG1QbGSMOF37Jzwyp58bdiRQhkybOwwxypZ4RT7x-AcMyNQqJSB3b5UPsZsSXIe0BOgYtNcGxiQ3Yscp9oewFgVQbCwm_Q3X1JWzb_O4uaJCSfnmSrFrMuLM2qDH8yy8NP"/>
+</div>
+<h3 id="profile-name" class="text-xl font-headline font-bold text-on-background">Harish Manager</h3>
+<span id="profile-role" class="px-4 py-1 bg-primary-fixed text-on-primary-fixed-variant text-xs font-bold rounded-full uppercase tracking-wider">HR Manager</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Email</span>
+<span id="profile-email" class="text-sm font-medium text-on-background">manager@corp.local</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Region</span>
+<span id="profile-region" class="text-sm font-medium text-on-background">APAC</span>
+</div>
+<div class="flex justify-between items-center py-3">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Approval Limit</span>
+<span id="profile-limit" class="text-sm font-medium text-on-background">14 days</span>
+</div>
+</div>
+</div>
+</div>
+
+<script type="module" src="/src/scripts/manager.js"></script>
+</body></html>

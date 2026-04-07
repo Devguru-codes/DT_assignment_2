@@ -135,6 +135,36 @@ def test_manager_review_requires_action(client, login_json):
     assert "action" in payload["message"]
 
 
+def test_leave_balance_endpoint(app):
+    employee_client, _ = _build_clients(app)
+    login_as(employee_client, "employee@corp.local", "Employee@123")
+    
+    response = employee_client.get("/leave-balance")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "annual" in payload
+    assert "sick" in payload
+    assert "personal" in payload
+
+def test_dashboard_stats_endpoint(app):
+    _, manager_client, admin_client = _build_clients(app, include_admin=True)
+    login_as(manager_client, "manager@corp.local", "Manager@123")
+    login_as(admin_client, "admin@corp.local", "Admin@123")
+
+    # Manager view
+    mgr_response = manager_client.get("/dashboard/stats")
+    assert mgr_response.status_code == 200
+    mgr_payload = mgr_response.get_json()
+    assert "total_employees" in mgr_payload
+    
+    # Admin view
+    admin_response = admin_client.get("/dashboard/stats")
+    assert admin_response.status_code == 200
+    admin_payload = admin_response.get_json()
+    assert "total_approved" in admin_payload
+    assert "total_rejected" in admin_payload
+    assert "escalation_rate" in admin_payload
+
 def _build_clients(app, include_admin: bool = False):
     employee_client = app.test_client()
     manager_client = app.test_client()
@@ -142,3 +172,18 @@ def _build_clients(app, include_admin: bool = False):
         admin_client = app.test_client()
         return employee_client, manager_client, admin_client
     return employee_client, manager_client
+
+def test_export_report_endpoint(app):
+    employee_client, manager_client, admin_client = _build_clients(app, include_admin=True)
+    
+    # Employee should be denied
+    login_as(employee_client, "employee@corp.local", "Employee@123")
+    emp_res = employee_client.get("/export-report")
+    assert emp_res.status_code == 403
+
+    # Admin should get DOCX
+    login_as(admin_client, "admin@corp.local", "Admin@123")
+    admin_res = admin_client.get("/export-report")
+    assert admin_res.status_code == 200
+    assert "application/vnd.openxmlformats-officedocument.wordprocessingml.document" in admin_res.headers["Content-Type"]
+    assert len(admin_res.data) > 0 # Ensure file is not empty
