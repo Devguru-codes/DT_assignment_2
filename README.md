@@ -2,7 +2,7 @@
 
 Backend prototype for an IT Prototyping of Approval & Authorization System using a corporate leave workflow.
 
-## Phase 3 Scope
+## Phase 4 Scope
 
 - role models for employee, HR manager, and admin
 - secure login with password hashing
@@ -15,6 +15,16 @@ Backend prototype for an IT Prototyping of Approval & Authorization System using
 - structured validation errors
 - account lockout after repeated failed logins
 - safer forbidden-access handling
+- standalone federated learning concept mock
+- local-only node processing with central aggregation of processed parameters
+
+## Federated Learning Mock
+
+Run:
+
+```powershell
+venv\Scripts\python federated_learning_mock.py
+```
 
 ## Setup
 

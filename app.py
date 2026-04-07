@@ -259,7 +259,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 "message": "Corporate Leave Approval System backend is running.",
                 "project": "IT Prototyping of Approval & Authorization System",
                 "domain": "Corporate Leave Approval System",
-                "phases_completed": 3,
+                "phases_completed": 4,
                 "routes": [
                     "POST /login",
                     "POST /logout",
