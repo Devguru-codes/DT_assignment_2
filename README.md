@@ -2,12 +2,16 @@
 
 Backend prototype for an IT Prototyping of Approval & Authorization System using a corporate leave workflow.
 
-## Phase 1 Scope
+## Phase 2 Scope
 
 - role models for employee, HR manager, and admin
 - secure login with password hashing
 - session-based authentication
 - role-based dashboard routing
+- leave request creation
+- manager approval and rejection
+- escalation to admin for requests above threshold
+- admin override support
 
 ## Setup
 
